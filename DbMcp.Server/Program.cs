@@ -81,9 +81,9 @@ try
                 - list_schemas: List schemas in a database
                 - list_tables: List tables and views with approximate row counts
                 - describe_table: Get columns, primary keys, indexes, and foreign keys for a table
-                - execute_query: Run a read-only SELECT query. Returns a JSON object { "rows": [...], "returned_rows": N } (an object, not a bare array). No row cap — bound with TOP/LIMIT; ~43s wall-clock timeout
-                - execute_nonquery: Run DDL/DML statements (CREATE, INSERT, UPDATE, DELETE, ALTER, DROP); optional batchSeparator splits into batches and useTransaction controls atomic-vs-per-batch commit
-                - execute_script: Execute a .sql file (transactional by default); optional batchSeparator splits into batches and useTransaction controls atomic-vs-per-batch commit
+                - execute_query: Run a read-only SELECT query. Returns { "query": "<sql>", "results": [ { "fields": [{ "name", "type" }], "rows": [ {col:val} ], "row_count": N } ] }. results is ALWAYS an array (read results[0].rows; a command can return multiple result sets); fields[].type is the connected database's native, engine-specific type name — depends on the database (e.g. SQL Server int/varchar, PostgreSQL int4/varchar); a NULL cell is JSON null. No row cap — bound with TOP/LIMIT; ~43s wall-clock timeout
+                - execute_nonquery: Run DDL/DML statements (CREATE, INSERT, UPDATE, DELETE, ALTER, DROP); reports write effects, not SELECT result sets — use execute_query for reads; optional batchSeparator splits into batches and useTransaction controls atomic-vs-per-batch commit
+                - execute_script: Execute a .sql file (transactional by default); reports write effects, not SELECT result sets — use execute_query for reads; optional batchSeparator splits into batches and useTransaction controls atomic-vs-per-batch commit
                 """;
         })
         .WithStdioServerTransport()

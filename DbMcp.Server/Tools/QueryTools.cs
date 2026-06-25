@@ -13,7 +13,7 @@ public sealed class QueryTools
     public QueryTools(DatabaseService db) => _db = db;
 
     [McpServerTool(ReadOnly = true, Destructive = false, Idempotent = true),
-     Description("Run a read-only SELECT query. Returns a JSON object { \"rows\": [ ...row objects... ], \"returned_rows\": N } — the rows are under the \"rows\" key, NOT a bare top-level array. There is NO row cap — bound your query with TOP / LIMIT before calling. Only SELECT and WITH (CTE) statements are allowed. Errors after ~43 seconds if the query hasn't completed (wall-clock timeout, not a result-size limit).")]
+     Description("Run a read-only SELECT query. Returns a JSON object { \"query\": \"<sql>\", \"results\": [ { \"fields\": [ { \"name\": ..., \"type\": ... } ], \"rows\": [ {col:val, ...} ], \"row_count\": N } ] }. \"results\" is ALWAYS an array — a single result set is results[0], so read results[0].rows and never branch on set count. A command can return MULTIPLE result sets (e.g. multiple SELECTs or a proc); each is its own entry in \"results\". A NULL cell appears as JSON null (present key). fields[].type is the connected database's native, ENGINE-SPECIFIC type name — it depends on which database you queried (SQL Server returns e.g. int/varchar/datetime2; PostgreSQL returns e.g. int4/varchar/timestamptz) — and is the vocabulary to use in follow-up SQL against that same database. There is NO row cap — bound your query with TOP / LIMIT before calling. Only SELECT and WITH (CTE) statements are allowed. Errors after ~43 seconds if the query hasn't completed (wall-clock timeout, not a result-size limit).")]
     public Task<string> ExecuteQuery(
         [Description("Connection alias from config (e.g., 'tempdb-sql'). Use list_connections to see available connections.")] string connection,
         [Description("SQL SELECT query to execute. Must start with SELECT or WITH.")] string query,
@@ -22,12 +22,12 @@ public sealed class QueryTools
         return ToolHelper.RunAsync(async () =>
         {
             var result = await _db.ExecuteQueryAsync(connection, query, cancellationToken);
-            return DynamicSerializer.Serialize(result);
+            return DynamicSerializer.SerializeRead(result);
         });
     }
 
     [McpServerTool(ReadOnly = false, Destructive = true, Idempotent = false),
-     Description("Run DDL/DML (CREATE, INSERT, UPDATE, DELETE, ALTER, DROP). With no batchSeparator, runs the statement as one command; returns {affected_rows, status}. With batchSeparator set, splits the SQL into batches on lines equal to the token and runs them in order; returns a per-batch array {status, batches:[{index, affected_rows}, ...]}. The useTransaction flag controls transaction wrapping independently of batchSeparator.")]
+     Description("Run DDL/DML (CREATE, INSERT, UPDATE, DELETE, ALTER, DROP). Reports write effects (affected_rows / committed / rolled_back); does NOT return SELECT result sets — use execute_query for reads. With no batchSeparator, runs the statement as one command; returns {affected_rows, status}. With batchSeparator set, splits the SQL into batches on lines equal to the token and runs them in order; returns a per-batch array {status, batches:[{index, affected_rows}, ...]}. The useTransaction flag controls transaction wrapping independently of batchSeparator.")]
     public Task<string> ExecuteNonquery(
         [Description("Connection alias from config (e.g., 'tempdb-sql'). Use list_connections to see available connections.")] string connection,
         [Description("SQL DDL/DML statement to execute.")] string query,
@@ -43,7 +43,7 @@ public sealed class QueryTools
     }
 
     [McpServerTool(ReadOnly = false, Destructive = true, Idempotent = false),
-     Description("Read and execute a .sql file. With no batchSeparator, runs the whole file as one command; returns {file, affected_rows, status}. With batchSeparator set, splits the file into batches and runs them in order; returns {file, status, batches:[...]}. The useTransaction flag controls transaction wrapping independently of batchSeparator.")]
+     Description("Read and execute a .sql file. Reports write effects (affected_rows / committed / rolled_back); does NOT return SELECT result sets — use execute_query for reads. With no batchSeparator, runs the whole file as one command; returns {file, affected_rows, status}. With batchSeparator set, splits the file into batches and runs them in order; returns {file, status, batches:[...]}. The useTransaction flag controls transaction wrapping independently of batchSeparator.")]
     public Task<string> ExecuteScript(
         [Description("Connection alias from config (e.g., 'tempdb-sql'). Use list_connections to see available connections.")] string connection,
         [Description("Absolute or relative path to a .sql file on the server's filesystem.")] string filePath,

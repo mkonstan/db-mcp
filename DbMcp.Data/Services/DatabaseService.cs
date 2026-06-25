@@ -121,6 +121,41 @@ public sealed class DatabaseService
         };
     }
 
+    /// <summary>
+    /// Runs a read-only SELECT/WITH query and returns the uniform multi-set read envelope
+    /// <c>{query, results:[{fields, rows, row_count}]}</c> — one entry in <c>results</c> per result set
+    /// the command produced.
+    /// </summary>
+    /// <remarks>
+    /// JOB — materialize EVERY result set (a single command can return more than one, e.g. multi-SELECT
+    /// or a proc) into a dictionary graph the model reads with one fixed access path.
+    /// <para>
+    /// WHY always enveloped, even for the common single-set case (the rejected fork: stay flat when
+    /// there is exactly one set): a query expected to return one set can return two, so a
+    /// sometimes-flat-sometimes-nested shape is a footgun. <c>results</c> is ALWAYS an array; the model
+    /// reads <c>results[0].rows</c> and never branches on set-count. A 0-row SELECT is a result set with
+    /// populated <c>fields</c> and an empty <c>rows</c> — NOT zero result sets.
+    /// </para>
+    /// <para>
+    /// WHY fields are read from reader metadata BEFORE the rows are materialized: the column schema does
+    /// not depend on any row existing, so an empty set still reports its columns. <c>type</c> is the
+    /// DB-native type name (<see cref="System.Data.Common.DbDataReader.GetDataTypeName(int)"/>) — engine-specific,
+    /// depends on the connected database (SQL Server <c>int</c>/<c>varchar</c>, PostgreSQL <c>int4</c>/<c>varchar</c>) — the vocabulary an LLM writing follow-up SQL reasons in; the CLR type
+    /// is .NET-internal noise here.
+    /// </para>
+    /// <para>
+    /// WHY each set's rows are fully materialized BEFORE <c>NextResultAsync</c> (the rejected fork:
+    /// advance the reader first, enumerate the lazy <c>Parse()</c> result later): <c>reader.Parse()</c>
+    /// is a LAZY enumerator over the CURRENT set; advancing first invalidates it and silently drops rows
+    /// with no exception. The <c>.ToList()</c> inside <see cref="ResultMapper.ToSerializable"/> forces
+    /// materialization at the right moment. The per-cell DBNull→null normalization the old reader loop
+    /// did is gone — DapperRow already does it (see <see cref="ResultMapper"/>). Row iteration inside
+    /// <c>Parse()</c> is synchronous over the buffered reader; only set advancement stays async — an
+    /// accepted shift from the prior ReadAsync loop.
+    /// </para>
+    /// The no-row-cap / no-truncation / 43s-wall-clock philosophy is unchanged — see the comment block
+    /// inside the callback.
+    /// </remarks>
     public async Task<Dictionary<string, object?>> ExecuteQueryAsync(
         string connection, string query, CancellationToken ct)
     {
@@ -141,7 +176,7 @@ public sealed class DatabaseService
             "execute_query on '{Connection}' (timeout={TimeoutSeconds}s): {Query}",
             connection, _commandTimeoutSeconds, query);
 
-        var data = await pipeline.ExecuteAsync(async token =>
+        var results = await pipeline.ExecuteAsync(async token =>
         {
             await using var conn = engine.CreateConnection(connStr);
             await conn.OpenAsync(token);
@@ -183,27 +218,42 @@ public sealed class DatabaseService
             using var reader = await conn.ExecuteReaderAsync(
                 new CommandDefinition(query, commandTimeout: _commandTimeoutSeconds, cancellationToken: token));
 
-            var rows = new List<Dictionary<string, object?>>();
-            var fieldCount = reader.FieldCount;
-
-            while (await reader.ReadAsync(token))
+            var sets = new List<Dictionary<string, object?>>();
+            do
             {
-                var row = new Dictionary<string, object?>(fieldCount);
-                for (var i = 0; i < fieldCount; i++)
+                // Fields FIRST, off reader metadata — independent of any row existing, so an
+                // empty set still reports its columns. type = DB-native (GetDataTypeName).
+                var fields = new List<Dictionary<string, object?>>(reader.FieldCount);
+                for (var i = 0; i < reader.FieldCount; i++)
                 {
-                    row[reader.GetName(i)] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                    fields.Add(new Dictionary<string, object?>
+                    {
+                        ["name"] = reader.GetName(i),
+                        ["type"] = reader.GetDataTypeName(i)
+                    });
                 }
-                rows.Add(row);
-            }
 
-            _logger.LogDebug("Query returned {Count} rows", rows.Count);
-            return rows;
+                // Rows next: Parse() (non-generic → DapperRow) is LAZY over THIS set only.
+                // ToSerializable's .ToList() MUST complete before NextResultAsync below, or the
+                // enumerator is invalidated and rows are silently lost. DapperRow already nulls DBNull.
+                var rows = ResultMapper.ToSerializable(reader.Parse());
+
+                sets.Add(new Dictionary<string, object?>
+                {
+                    ["fields"] = fields,
+                    ["rows"] = rows,
+                    ["row_count"] = rows.Count
+                });
+            } while (await reader.NextResultAsync(token));
+
+            _logger.LogDebug("Query returned {Count} result set(s)", sets.Count);
+            return sets;
         }, ct);
 
         return new Dictionary<string, object?>
         {
-            ["rows"] = data,
-            ["returned_rows"] = data.Count
+            ["query"] = query,
+            ["results"] = results
         };
     }
 

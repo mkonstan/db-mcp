@@ -12,11 +12,11 @@ A self-contained **stdio** MCP server for multi-engine database introspection an
 | `list_schemas` | List schemas in a database |
 | `list_tables` | List tables and views with approximate row counts |
 | `describe_table` | Columns, primary keys, indexes, foreign keys for a table |
-| `execute_query` | Read-only SELECT. Returns `{ "rows": [...], "returned_rows": N }` (an object, not a bare array). No row cap — bound with `TOP`/`LIMIT`; ~43s timeout |
+| `execute_query` | Read-only SELECT. Returns `{ "query": "<sql>", "results": [ { "fields": [{ "name", "type" }], "rows": [...], "row_count": N } ] }` — `results` is always an array (a command can return multiple result sets; read `results[0].rows`), `fields[].type` is the database's native, engine-specific type name (depends on the DB — e.g. SQL Server `int`, PostgreSQL `int4`), NULL cells are JSON `null`. No row cap — bound with `TOP`/`LIMIT`; ~43s timeout |
 | `execute_nonquery` | DDL/DML (CREATE/INSERT/UPDATE/DELETE/ALTER/DROP); optional `batchSeparator` + `useTransaction` |
 | `execute_script` | Execute a `.sql` file (transactional by default); optional `batchSeparator` + `useTransaction` |
 
-`batchSeparator` splits the input on lines equal to a token (e.g. `GO`) and runs each batch in order; `useTransaction` (default `true`) wraps all batches in one transaction (atomic) versus committing per batch.
+`batchSeparator` splits the input on lines equal to a token (e.g. `GO`) and runs each batch in order; `useTransaction` (default `true`) wraps all batches in one transaction (atomic) versus committing per batch. `execute_nonquery` and `execute_script` report write effects (`affected_rows` / committed / rolled back) and do not return SELECT result sets — use `execute_query` for reads.
 
 ## Configure connections
 
