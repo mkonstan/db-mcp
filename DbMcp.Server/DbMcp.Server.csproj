@@ -6,6 +6,12 @@
     <RootNamespace>DbMcp.Server</RootNamespace>
     <AssemblyName>DbMcp.Server</AssemblyName>
 
+    <!-- Single source of truth for the version. ServerInfo.Version derives from the
+         assembly's InformationalVersion at runtime (Program.cs), so the client-reported
+         version can never drift from this number again. Semver 0.x (pre-1.0): a breaking
+         change bumps the MINOR. Tag v0.2.0 to cut a release (release.yml is tag-driven). -->
+    <Version>0.2.0</Version>
+
     <!-- Console app, not web. The plain Microsoft.NET.Sdk does NOT supply
          OutputType implicitly (the .Web SDK did), so it must be set here or
          there is no runnable host. -->

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
+using System.Reflection;
 
 // One-shot CLI: -register / -unregister self-install into Claude Desktop, then exit
 // BEFORE any host / DI / stdio wiring runs. Must be the very first statement so the
@@ -69,7 +70,10 @@ try
             options.ServerInfo = new()
             {
                 Name = "dbmcp",
-                Version = "1.0.0"
+                // Single source of truth is <Version> in DbMcp.Server.csproj; read it from
+                // the assembly's InformationalVersion so this can never drift from the csproj/tag.
+                Version = Assembly.GetExecutingAssembly()
+                    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion?.Split('+')[0] ?? "0.0.0"
             };
             options.ServerInstructions = """
                 Database MCP — multi-engine database introspection and query execution.
