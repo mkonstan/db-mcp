@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>DbMcp.Data.Tests</RootNamespace>
+    <AssemblyName>DbMcp.Data.Tests</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0" />
+    <!-- 10.0.5 (not 9.0.9): the DbMcp.Server reference pulls ModelContextProtocol,
+         which floats Logging.Abstractions to >= 10.0.5. The lower pin trips NU1605. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DbMcp.Data\DbMcp.Data.csproj" />
+    <!-- Server reference for InstallerTests (Installer lives in DbMcp.Server). -->
+    <ProjectReference Include="..\DbMcp.Server\DbMcp.Server.csproj" />
+  </ItemGroup>
+</Project>

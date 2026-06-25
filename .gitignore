@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+publish/
+
+# Local dev secrets (the locked carve-out). The BASE appsettings.json is NOT
+# ignored — the published server needs it at runtime and the source commits it.
+appsettings.Development.json
+appsettings.*.local.json
+
+# Runtime logs
+logs/
+
+# IDE / editor
+.vs/
+.idea/
+*.user
+
+# Internal dev artifacts — NOT for the public repo
+_scratch/
+db_mcp_state.md
+.mcp.json
+
+# Backups (config .bak the installer writes)
+*.bak

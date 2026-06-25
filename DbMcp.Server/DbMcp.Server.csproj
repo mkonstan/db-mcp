@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DbMcp.Server</RootNamespace>
+    <AssemblyName>DbMcp.Server</AssemblyName>
+
+    <!-- Console app, not web. The plain Microsoft.NET.Sdk does NOT supply
+         OutputType implicitly (the .Web SDK did), so it must be set here or
+         there is no runnable host. -->
+    <OutputType>Exe</OutputType>
+
+    <!-- Deployment: self-contained Windows x64 folder publish (NOT single-file).
+         `dotnet publish DbMcp.Server -c Release` produces a folder with the
+         .exe plus its dependency DLLs and appsettings.json — no .NET runtime
+         prerequisite on the target box. Copy the whole folder and run the .exe.
+         NOTE: single-file is deliberately avoided. Serilog.Settings.Configuration
+         discovers sinks by scanning on-disk assemblies, which breaks under
+         PublishSingleFile (the sink DLLs get bundled into the exe and can't be
+         enumerated by name). The folder layout keeps Serilog.Sinks.* on disk. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+
+    <!-- Fixed, easy-to-find package location: solution-level `db-mcp\publish\`
+         (PublishDir is relative to this .csproj, so `..\publish\` resolves up one
+         level out of DbMcp.Server\). `dotnet publish -c Release` always lands
+         here — no -o flag to remember. This is a build output: gitignore it. -->
+    <PublishDir>..\publish\</PublishDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Base ModelContextProtocol (NOT .AspNetCore): stdio transport needs only
+         the base SDK + Microsoft.Extensions.Hosting. Do NOT pin System.Text.Json
+         here — the MCP SDK floats STJ to a higher major transitively, and an
+         explicit lower pin trips the NU1605 downgrade error (mcp-dotnet §1.5).
+         (The Data project keeps its STJ pin precisely because it has no MCP-SDK
+         reference, so its pin is safe.) -->
+    <PackageReference Include="ModelContextProtocol" Version="1.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.9" />
+    <!-- Get<T>() config binding. The .Web SDK supplied this transitively via the
+         ASP.NET shared framework; the plain console SDK + Hosting does not expose
+         the Get<T>() extension, so it is explicit here. (mcp-dotnet §1.5: the
+         console host must add what the Web SDK gave implicitly.) -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.9" />
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DbMcp.Data\DbMcp.Data.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Installer's path-injectable seams (RegisterInto/UnregisterFrom/ConfigPaths)
+         are internal — exposed to the test project so they can be driven against
+         TEMP config dirs without widening the public API. -->
+    <InternalsVisibleTo Include="DbMcp.Data.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Copy appsettings.json to build/publish output. The .Web SDK auto-included
+         it as content; the plain console SDK does not, so without this the server
+         finds no 'Connections' section at runtime and fails at boot. -->
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Self-serve installer scripts shipped INTO publish\ beside the exe, so the
+         published folder ALONE (no .NET SDK, no source) can register/unregister
+         dbmcp with Claude Desktop. They just call the local DbMcp.Server.exe verb.
+         (Same copy mechanism as appsettings.json above.) -->
+    <Content Include="register.bat" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="unregister.bat" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
