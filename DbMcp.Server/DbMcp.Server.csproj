@@ -6,11 +6,14 @@
     <RootNamespace>DbMcp.Server</RootNamespace>
     <AssemblyName>DbMcp.Server</AssemblyName>
 
-    <!-- Single source of truth for the version. ServerInfo.Version derives from the
-         assembly's InformationalVersion at runtime (Program.cs), so the client-reported
-         version can never drift from this number again. Semver 0.x (pre-1.0): a breaking
-         change bumps the MINOR. Tag v0.2.0 to cut a release (release.yml is tag-driven). -->
-    <Version>0.2.0</Version>
+    <!-- Version is derived from git tags by MinVer (PackageReference below) — there is NO
+         manual <Version> here. The nearest `v*` tag IS the version (tag v0.2.0 -> 0.2.0);
+         commits after a tag auto-increment as pre-release builds (0.2.1-alpha.0.N). Cut a
+         release with `git tag v0.2.0 && git push origin v0.2.0` (fires release.yml). CI/Release
+         checkouts use fetch-depth:0 so MinVer can see the history+tags. ServerInfo.Version
+         (Program.cs) reads this assembly's InformationalVersion, so the client-reported version
+         always matches the tag. Semver 0.x (pre-1.0): a breaking change bumps the MINOR. -->
+    <MinVerTagPrefix>v</MinVerTagPrefix>
 
     <!-- Console app, not web. The plain Microsoft.NET.Sdk does NOT supply
          OutputType implicitly (the .Web SDK did), so it must be set here or
@@ -42,6 +45,10 @@
          explicit lower pin trips the NU1605 downgrade error (mcp-dotnet §1.5).
          (The Data project keeps its STJ pin precisely because it has no MCP-SDK
          reference, so its pin is safe.) -->
+    <PackageReference Include="MinVer" Version="7.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="ModelContextProtocol" Version="1.2.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.9" />
     <!-- Get<T>() config binding. The .Web SDK supplied this transitively via the
