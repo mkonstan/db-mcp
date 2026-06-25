@@ -1,0 +1,38 @@
+name: Release
+
+# Tag-driven releases: push a tag like v1.0.0 to build, zip, and publish a GitHub Release.
+#   git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write   # required for the built-in token to create the Release
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      # csproj is self-contained win-x64 and sets PublishDir=..\publish\,
+      # so this lands the app folder at <repo>/publish/.
+      - name: Publish (self-contained win-x64)
+        run: dotnet publish DbMcp.Server/DbMcp.Server.csproj -c Release
+
+      - name: Zip the published app
+        shell: pwsh
+        run: Compress-Archive -Path publish/* -DestinationPath "dbmcp-${{ github.ref_name }}-win-x64.zip" -Force
+
+      - name: Create GitHub Release with the zip asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${{ github.ref_name }}"
+          "dbmcp-${{ github.ref_name }}-win-x64.zip"
+          --title "dbmcp ${{ github.ref_name }}"
+          --generate-notes

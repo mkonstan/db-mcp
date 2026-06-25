@@ -1,0 +1,12 @@
+# Normalize line endings: store LF in the repo, check out native on each OS.
+* text=auto
+
+# Windows-only files must stay CRLF (batch files break on LF; .sln convention).
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.sln  text eol=crlf
+
+# Treat as binary (no EOL munging, no diff).
+*.png  binary
+*.ico  binary
+*.zip  binary

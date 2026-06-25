@@ -1,5 +1,7 @@
 # dbmcp
 
+[![CI](https://github.com/mkonstan/db-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/mkonstan/db-mcp/actions/workflows/ci.yml)
+
 A self-contained **stdio** MCP server for multi-engine database introspection and query execution. Supports **PostgreSQL** and **SQL Server** via named connections. stdio transport only (`WithStdioServerTransport()`) — no HTTP, REST, or web surface.
 
 ## Tools
