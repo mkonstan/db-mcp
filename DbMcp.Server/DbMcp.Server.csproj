@@ -22,9 +22,10 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
 
-    <!-- Fixed, easy-to-find package location: solution-level `db-mcp\publish\`
-         (PublishDir is relative to this .csproj, so `..\publish\` resolves up one
-         level out of DbMcp.Server\). `dotnet publish -c Release` always lands
+    <!-- Fixed, easy-to-find package location: `src\publish\`, right next to the
+         solution (db-mcp.sln lives in src\, NOT the repo root). PublishDir is
+         relative to this .csproj, so `..\publish\` resolves up one level out of
+         DbMcp.Server\ to src\publish\. `dotnet publish -c Release` always lands
          here — no -o flag to remember. This is a build output: gitignore it. -->
     <PublishDir>..\publish\</PublishDir>
   </PropertyGroup>

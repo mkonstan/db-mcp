@@ -81,7 +81,7 @@ try
                 - list_schemas: List schemas in a database
                 - list_tables: List tables and views with approximate row counts
                 - describe_table: Get columns, primary keys, indexes, and foreign keys for a table
-                - execute_query: Run a read-only SELECT query (no row cap — bound with TOP/LIMIT; ~43s wall-clock timeout)
+                - execute_query: Run a read-only SELECT query. Returns a JSON object { "rows": [...], "returned_rows": N } (an object, not a bare array). No row cap — bound with TOP/LIMIT; ~43s wall-clock timeout
                 - execute_nonquery: Run DDL/DML statements (CREATE, INSERT, UPDATE, DELETE, ALTER, DROP); optional batchSeparator splits into batches and useTransaction controls atomic-vs-per-batch commit
                 - execute_script: Execute a .sql file (transactional by default); optional batchSeparator splits into batches and useTransaction controls atomic-vs-per-batch commit
                 """;

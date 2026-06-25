@@ -4,8 +4,9 @@ REM register.bat (publish-resident) - ships INTO publish\ beside DbMcp.Server.ex
 REM (copied by the csproj). Registers dbmcp into every Claude Desktop config on
 REM this machine. Self-contained: the exe is self-contained win-x64, so this
 REM needs NO .NET SDK and NO source -- just this folder. Restart Claude Desktop
-REM afterward. (The repo-ROOT register.bat is the from-source "publish + register"
-REM one-stop; THIS slim one is what ships in the distributable folder.)
+REM afterward. This bat ships in the published folder and only registers the
+REM sibling DbMcp.Server.exe -- it does NOT build. To (re)build the exe from
+REM source, run publish.bat (in src\), which is the build tool.
 REM ============================================================================
 setlocal
 cd /d "%~dp0"

@@ -17,8 +17,8 @@ logs/
 *.user
 
 # Internal dev artifacts — NOT for the public repo
+# (claude_code_state.md lives one level up, outside this repo tree)
 _scratch/
-db_mcp_state.md
 .mcp.json
 
 # Backups (config .bak the installer writes)

@@ -15,7 +15,7 @@ public sealed class SchemaTools
     [McpServerTool(ReadOnly = true, Destructive = false, Idempotent = true),
      Description("List all schemas in the database.")]
     public Task<string> ListSchemas(
-        [Description("Connection alias from config (e.g., 'local-pg', 'local-sql'). Use list_connections to see available connections.")] string connection,
+        [Description("Connection alias from config (e.g., 'tempdb-sql'). Use list_connections to see available connections.")] string connection,
         CancellationToken cancellationToken)
     {
         return ToolHelper.RunAsync(async () =>
@@ -26,9 +26,9 @@ public sealed class SchemaTools
     }
 
     [McpServerTool(ReadOnly = true, Destructive = false, Idempotent = true),
-     Description("List all tables and views in the database. Row counts are approximate for Postgres (from planner statistics).")]
+     Description("List all tables and views in the database. Row counts are approximate on both engines (from catalog statistics, not a live COUNT); on SQL Server, views report 0.")]
     public Task<string> ListTables(
-        [Description("Connection alias from config (e.g., 'local-pg', 'local-sql'). Use list_connections to see available connections.")] string connection,
+        [Description("Connection alias from config (e.g., 'tempdb-sql'). Use list_connections to see available connections.")] string connection,
         [Description("Database schema name (e.g., 'public', 'dbo'). Optional - if omitted, all schemas are included.")] string? schema = null,
         CancellationToken cancellationToken = default)
     {
@@ -40,9 +40,9 @@ public sealed class SchemaTools
     }
 
     [McpServerTool(ReadOnly = true, Destructive = false, Idempotent = true),
-     Description("Describe a table or view: columns, primary keys, indexes, and foreign keys.")]
+     Description("Describe a table or view. Columns are returned for both tables and views; primary keys, indexes, and foreign keys are base-table-only — a view returns empty arrays for those.")]
     public Task<string> DescribeTable(
-        [Description("Connection alias from config (e.g., 'local-pg', 'local-sql'). Use list_connections to see available connections.")] string connection,
+        [Description("Connection alias from config (e.g., 'tempdb-sql'). Use list_connections to see available connections.")] string connection,
         [Description("Table or view name (e.g., 'users', 'orders').")] string table,
         [Description("Database schema name (e.g., 'public', 'dbo'). Optional - if omitted, searches all schemas.")] string? schema = null,
         CancellationToken cancellationToken = default)

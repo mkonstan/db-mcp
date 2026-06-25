@@ -12,7 +12,7 @@ A self-contained **stdio** MCP server for multi-engine database introspection an
 | `list_schemas` | List schemas in a database |
 | `list_tables` | List tables and views with approximate row counts |
 | `describe_table` | Columns, primary keys, indexes, foreign keys for a table |
-| `execute_query` | Read-only SELECT (no row cap — bound with `TOP`/`LIMIT`; ~43s timeout) |
+| `execute_query` | Read-only SELECT. Returns `{ "rows": [...], "returned_rows": N }` (an object, not a bare array). No row cap — bound with `TOP`/`LIMIT`; ~43s timeout |
 | `execute_nonquery` | DDL/DML (CREATE/INSERT/UPDATE/DELETE/ALTER/DROP); optional `batchSeparator` + `useTransaction` |
 | `execute_script` | Execute a `.sql` file (transactional by default); optional `batchSeparator` + `useTransaction` |
 
@@ -42,17 +42,17 @@ The publish output is a self-contained Windows x64 folder (deliberately not sing
 
 ## Register with a client
 
-The published exe self-registers into Claude Desktop's config(s) — backs up each config first, merges without clobbering other servers:
+The published folder is self-installing. Run **`register.bat` from inside the folder** — it backs up each Claude Desktop config first, then merges `dbmcp` in without clobbering other servers. The folder can be named anything and live anywhere: the scripts anchor to their own location and register the exe's real path.
 
 ```
-publish\register.bat      REM add dbmcp to every Claude Desktop config on this machine
-publish\unregister.bat    REM remove it
+register.bat      REM add dbmcp to every Claude Desktop config on this machine
+unregister.bat    REM remove it
 ```
 
 Or register manually by pointing the client at the absolute path of the published exe:
 
 ```json
-{ "mcpServers": { "dbmcp": { "command": "C:/path/to/publish/DbMcp.Server.exe" } } }
+{ "mcpServers": { "dbmcp": { "command": "C:/path/to/DbMcp.Server.exe" } } }
 ```
 
 Prefer the published exe over `dotnet run` — `dotnet run` build output can pollute stdout and break the JSON-RPC handshake.

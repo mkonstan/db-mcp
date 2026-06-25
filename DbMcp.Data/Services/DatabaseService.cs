@@ -402,7 +402,7 @@ public sealed class DatabaseService
     /// it projects to <c>{status:error, failed_batch_index, error, rolled_back:true}</c> in both the
     /// flat and split cases.
     /// </remarks>
-    private static Dictionary<string, object?> ProjectResult(BatchRunResult run, bool wasSplit, string? file)
+    internal static Dictionary<string, object?> ProjectResult(BatchRunResult run, bool wasSplit, string? file)
     {
         if (run.Success)
         {
